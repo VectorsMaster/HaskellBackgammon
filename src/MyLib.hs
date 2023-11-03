@@ -1,16 +1,13 @@
 
-module MyLib (rollDiceWithTimeSeed) where
+module MyLib where
 
 import System.Random
-import Data.Time.Clock.POSIX
+
+myArray :: [Int]
+myArray = randomRs (1, 6) (mkStdGen 3)
 
 
-getCurrentTimeSeed :: IO Int
-getCurrentTimeSeed = round <$> getPOSIXTime
 
--- Define a pure function to simulate rolling a dice with a time-based seed
-rollDiceWithTimeSeed :: IO Int
-rollDiceWithTimeSeed = do
-    fst . randomR (1, 6) . mkStdGen <$> getCurrentTimeSeed
+
 
 

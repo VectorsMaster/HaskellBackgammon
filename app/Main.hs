@@ -4,6 +4,9 @@ import MyLib
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game ( Event )
 
+
+
+
 -- | Represents a sequence of moves (in their order) made by ONE PLAYER in ONE TURN
 -- | Each elements in the sequence represents one move and consists of pair of integers
 -- | Let the pair be (X, Y)
@@ -17,7 +20,7 @@ type Move = [(Int, Int)]
 -- | The Second integer represents the number of pieces in this triangle from it can be from 0 to 15
 -- | The last integer represents "mahbousa" it can be 1 if this triangle contains one piece of the other color which cannot move and 0 otherwise
 type GameTriangle = (Int, Int, Int)
-
+    
 
 -- | dices : the values of the dices in the current turn
 -- | turn  : can be either 0 or 1
@@ -27,7 +30,8 @@ data World = World {
     dices :: (Int, Int),
     turn :: Int,
     triangles :: [GameTriangle],
-    availableMoves :: [Move]
+    availableMoves :: [Move],
+    randoms :: [Int]
 } 
 
 main :: IO ()
@@ -44,13 +48,14 @@ main = play
 handleInput :: Event -> World -> World
 handleInput event world = _toDo
 
+initialTriangles :: [(Int, Int, Int)]
 initialTriangles = [
     (1, 15, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0),(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0),(0, 0, 0),(0, 0, 0), (0, 0, 0),
      (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0),(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0),(0, 0, 0),(0, 0, 0), (0, 15, 0)
     ]
 
 initialWorld :: World
-initialWorld = World (-1, -1) 0 initialTriangles []
+initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray
 
 -- | Render the State of the Game.
 drawBoard :: World -> Picture
@@ -79,4 +84,5 @@ getValidMoves = _toDo
 
 -- | generate to random numbers from 1 to 6 and assign them the dices member in World struct
 throwDices :: World -> World
-throwDices = _toDo
+throwDices (World (-1, -1) turn triangles availableMoves (r1:(r2:rs))) = World (r1, r2) turn triangles availableMoves rs 
+throwDices world = world
