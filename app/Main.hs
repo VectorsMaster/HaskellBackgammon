@@ -21,6 +21,8 @@ type Move = [(Int, Int)]
 -- | The last integer represents "mahbousa" it can be 1 if this triangle contains one piece of the other color which cannot move and 0 otherwise
 type GameTriangle = (Int, Int, Int)
 
+-- | the dirction of triangles and pieces
+data Direction = Upward | Downward
 
 -- | dices : the values of the dices in the current turn
 -- | turn  : can be either 0 or 1
@@ -37,10 +39,11 @@ data World = World {
 } deriving (Eq, Show)
 
 main :: IO ()
-main = do
-    print (triangles initialWorld)
-    let (ret, newWorld) = isValidMove (23, 24) initialWorld
-    print ret
+main = display
+    (InWindow "Backgammon" (700, 650) (10, 10))
+    white
+    (drawBoard initialWorld)
+
 -- main = play
 --     (InWindow "Backgammon" (1000, 1000) (100, 100))
 --     white
@@ -63,11 +66,82 @@ initialTriangles = [
 initialWorld :: World
 initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray False
 
--- -- | Render the State of the Game.
--- drawBoard :: World -> Picture
--- drawBoard world = _toDo
+brown :: Color
+brown = makeColor 0.4375 0.30859375 0.1640625 1.0
+
+drawPiece :: Color -> Picture
+drawPiece color = Color color $ ThickCircle 5 10
+
+-- | Render the State of the Game.
+drawBoard :: World -> Picture
+drawBoard world = translate (-330) 220 (dice <> table <> downwardTriangles <> shiftedUpwardTriangles)
+    where
+        len = length (triangles world)
+        height = 500
+        break = 20
+        downwardTriangles = half1Downwards <> translate (50*6 + break) 0 half2Downwards
+        upwardTriangles =  half1Upwards <> translate (-50*6 - break) 0 half2Upwards
+        quarter = len `div` 4
+        table = translate (50 * fromIntegral quarter + 10) (-height/2) (Color brown $ rectangleSolid (50*(fromIntegral quarter * 2) + break) 500)
+
+        half1Downwards = drawGameTriangles (take quarter (triangles world)) Downward
+        half1Upwards = drawGameTriangles (takeRange (quarter * 2) (quarter * 3 - 1) (triangles world)) Upward
+
+        half2Downwards = drawGameTriangles (takeRange quarter (quarter * 2 - 1) (triangles world)) Downward
+        half2Upwards = drawGameTriangles (takeRange (quarter * 3) len (triangles world)) Upward
+
+        shiftedUpwardTriangles = translate (50*(fromIntegral quarter * 2 - 1) + break) (-height) upwardTriangles
+        currentDice = dices world
+        dice = if getFirstElement currentDice /= (-1) then Text (show currentDice) else blank
+
+getFirstElement :: (a, b) -> a
+getFirstElement (x, _) = x
 
 
+-- Draw game triangles
+drawGameTriangles :: [GameTriangle] -> Direction -> Picture
+drawGameTriangles [] _ = blank
+drawGameTriangles (triangle:triangles) direction = firstTriangle <> remainingTriangles
+    where
+        shift = case direction of
+            Upward -> -50
+            Downward -> 50
+        firstTriangle = drawGameTriangle triangle direction
+        remainingTriangles = translate shift 0 (drawGameTriangles triangles direction)
+
+drawPieces :: GameTriangle -> Direction -> Picture
+drawPieces triangle direction = translate 25 y (mahbousaPiece <> translate 0 yMahbousa (drawIdenticalPieces numPieces direction piecesColor))
+    where
+        y = case direction of 
+            Upward -> 10
+            Downward -> -10
+        (color, numPieces, mahbousa) = triangle
+        mahbousaColor = if color == 1 then black else white
+        piecesColor = if color == 0 then black else white
+        mahbousaPiece = if mahbousa == 0 then blank else drawPiece mahbousaColor
+        yMahbousa = if mahbousa == 0 then 0 else y
+
+drawIdenticalPieces :: Int -> Direction -> Color -> Picture
+drawIdenticalPieces 0 direction color = blank
+drawIdenticalPieces numPieces direction color = piece <> translate 0 y pieces
+    where
+        y = case direction of 
+            Upward -> 15
+            Downward -> -15
+        piece = drawPiece color
+        pieces = drawIdenticalPieces (numPieces - 1) direction color
+
+-- Draw a single game triangle
+drawGameTriangle :: GameTriangle -> Direction -> Picture
+drawGameTriangle triangle direction = directedTriangle <> circles
+    where
+        directedTriangle = Color red $ case direction of
+            Upward -> Polygon [(0,0), (25,100), (50,0)]
+            Downward -> Polygon [(0,0), (25,-100), (50,0)]
+        circles = drawPieces triangle direction
+
+takeRange :: Int -> Int -> [a] -> [a]
+takeRange i j l = take (j-i+1) (drop i l)
 
 colorExist :: GameTriangle -> Int -> Bool
 colorExist (x, y, _) clr = x == clr && y > 0
