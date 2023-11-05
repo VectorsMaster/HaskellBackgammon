@@ -64,7 +64,7 @@ initialTriangles = [
     ]
 
 initialWorld :: World
-initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray False
+initialWorld = World (1, 6) 0 initialTriangles [] MyLib.myArray False
 
 brown :: Color
 brown = makeColor 0.4375 0.30859375 0.1640625 1.0
@@ -112,7 +112,7 @@ drawGameTriangles (triangle:triangles) direction = firstTriangle <> remainingTri
 drawPieces :: GameTriangle -> Direction -> Picture
 drawPieces triangle direction = translate 25 y (mahbousaPiece <> translate 0 yMahbousa (drawIdenticalPieces numPieces direction piecesColor))
     where
-        y = case direction of 
+        y = case direction of
             Upward -> 10
             Downward -> -10
         (color, numPieces, mahbousa) = triangle
@@ -125,7 +125,7 @@ drawIdenticalPieces :: Int -> Direction -> Color -> Picture
 drawIdenticalPieces 0 direction color = blank
 drawIdenticalPieces numPieces direction color = piece <> translate 0 y pieces
     where
-        y = case direction of 
+        y = case direction of
             Upward -> 15
             Downward -> -15
         piece = drawPiece color
@@ -151,21 +151,42 @@ inv 0 = 1
 inv _ = 0
 
 changeTriangle :: GameTriangle -> Int -> Int -> GameTriangle
-changeTriangle (x, y, z) id val
-    | y + val /= 0  = (x, y + val, z)
-    | otherwise     = if z == 1 then (inv x, 1, 0) else (0, 0, 0)
+changeTriangle (x, y, z) val clr
+    | y == 1 && x /= clr      = (clr, 1, 1)
+    | y + val == 0 && z == 1  = (inv clr, 1, 0)
+    | y + val == 0            = (0, 0, 0)
+    | otherwise               = (clr, y + val, z)
 
-changeTriangles :: [GameTriangle] -> Int -> Int -> [GameTriangle]
-changeTriangles lst id val = iter lst val id 0
+changeTriangles :: [GameTriangle] -> Int -> Int -> Int -> [GameTriangle]
+changeTriangles lst id val trn = iter lst val id trn 0
     where
-        iter [] _ _ _= []
-        iter (x:xs) val id pos
-            | pos == id = changeTriangle x val id : xs
-            | otherwise = x : iter xs val id (pos + 1)
+        iter :: [GameTriangle] -> Int -> Int -> Int -> Int -> [GameTriangle]
+        iter [] _ _ _ _ = []
+        iter (x:xs) v i t pos = if pos == i then changeTriangle x v trn : xs else x : iter xs v i t (pos + 1)
 
--- | removing or adding number of pieces to a specific triangle
+-- | removing or adding number of pieces to a specific triangle in the world
 changeWorld :: World -> Int -> Int -> World
-changeWorld (World d trn t a r b) id val = World d trn (changeTriangles t id val) a r b
+changeWorld (World d trn t a r b) id val = World d trn (changeTriangles t id val trn) a r b
+
+fndColor :: GameTriangle -> Int
+fndColor (x, _, _) = x
+
+fndCount :: GameTriangle -> Int
+fndCount (_, y, _) = y
+
+allInHalf :: [GameTriangle] -> Int -> Bool
+allInHalf lst trn = iter lst 0
+    where
+        check (x, y, z)
+            | x == trn && y > 0 = True
+            | x /=trn && z == 1 = True
+            | otherwise         = False
+
+        iter [] _ = True
+        iter (x:xs) pos = not (pos >= 12 && check x) && iter xs (pos + 1)
+
+updateBearingOff :: World -> World
+updateBearingOff (World d trn t a r b) = if allInHalf t trn then World d trn t a r True else World d trn t a r False
 
 -- | First parameter (x, y)
 -- | X: Represents the index of the triangle from where the character to be moved is chosen.
@@ -178,18 +199,31 @@ isValidMove (x, y) world
     | not (colorExist currentTriangle currentTurn) = (False, world)
     | x - y < 0  && not (bearingOff world)         = (False, world)
     | x - y < 0                                    = (True, changeWorld world x (-1))
-    | otherwise                                    = (True, world)
+    | desCount == 0 || desColor == currentTurn     = (True, changeWorld (changeWorld world x (-1)) (x - y) 1)
+    | desCount == 1                                = (True, changeWorld (changeWorld world x (-1)) (x - y) 1)
+    | otherwise                                    = (False, world)
         where
             currentTriangle = triangles world !! x
             currentTurn = turn world
             desTriangle = triangles world !! (x - y)
+            desCount = fndCount desTriangle
+            desColor = fndColor desTriangle
 
 
--- -- | Checks if a sequence of moves to be played by one player in this turn is valid or not using isValidMove function.
--- isValidMovesSequence :: Move -> World -> (Bool, World)
--- isValidMovesSequence = _toDo
+-- | Checks if a sequence of moves to be played by one player in this turn is valid or not using isValidMove function.
+isValidMovesSequence :: Move -> World -> (Bool, World)
+isValidMovesSequence [] world = (True, world)
+isValidMovesSequence lst world = iter lst world 
+    where 
+        iter [] curWorld = (True, curWorld)
+        iter (x:xs) curWorld 
+            | ok        = iter xs nextWorld
+            | otherwise = (False, curWorld)
+                where 
+                    (ok, newWorld) = isValidMove x world
+                    nextWorld = updateBearingOff newWorld
 
--- -- | Returns a list of all moves according to the numbers in the dices (valid and not valid)
+-- | Returns a list of all moves according to the numbers in the dices (valid and not valid)
 -- getAllMoves :: World -> [Move]
 -- getAllMoves = _toDo
 
