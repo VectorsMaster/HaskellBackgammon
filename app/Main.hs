@@ -74,7 +74,7 @@ handleInput event world
 -- | A function to choose the number of steps a piece will move in this turn
 chooseSteps :: Int -> World -> World
 chooseSteps x (World dc t tr av r b st f _) = 
-    if x > 6 && MyLib.exists x av then World dc t tr av r b st f 0 else World dc t tr av r b Moving f x
+    if x > 6 || not (MyLib.exists x av) then World dc t tr av r b st f 0 else World dc t tr av r b Moving f x
 
 -- | A function to perform a move 
 tryMovePiece :: (Int, Int) -> World -> World
@@ -128,11 +128,11 @@ drawBoard world = translate (-330) 220 (curState <> dice <> table <> downwardTri
         quarter = len `div` 4
         table = translate (50 * fromIntegral quarter + 10) (-height/2) (Color brown $ rectangleSolid (50*(fromIntegral quarter * 2) + break) 500)
 
-        half1Downwards = drawGameTriangles (take quarter (triangles world)) Downward
-        half1Upwards = drawGameTriangles (MyLib.takeRange (quarter * 2) (quarter * 3 - 1) (triangles world)) Upward
+        half1Downwards = drawGameTriangles (take quarter (reverse (triangles world))) Downward
+        half1Upwards = drawGameTriangles (MyLib.takeRange (quarter * 2) (quarter * 3 - 1) (reverse (triangles world))) Upward
 
-        half2Downwards = drawGameTriangles (MyLib.takeRange quarter (quarter * 2 - 1) (triangles world)) Downward
-        half2Upwards = drawGameTriangles (MyLib.takeRange (quarter * 3) len (triangles world)) Upward
+        half2Downwards = drawGameTriangles (MyLib.takeRange quarter (quarter * 2 - 1) (reverse (triangles world))) Downward
+        half2Upwards = drawGameTriangles (MyLib.takeRange (quarter * 3) len (reverse (triangles world))) Upward
 
         shiftedUpwardTriangles = translate (50*(fromIntegral quarter * 2 - 1) + break) (-height) upwardTriangles
         dice = if fst (dices world) /= (-1) then Text (show $ dices world) else blank
