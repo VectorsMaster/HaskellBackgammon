@@ -51,10 +51,10 @@ backGammon = play
     (\_ world -> world)
 
 main :: IO () 
-main = do 
-    print (dices $ throwDices initialWorld)
-    print (state $ throwDices initialWorld)
-    
+main = backGammon
+    -- print (dices $ throwDices initialWorld)
+    -- print (state $ throwDices initialWorld)
+
 -- | A function to convert keypress event to integer
 convEvent :: Event -> Int
 convEvent (EventKey (Char c) Down _ _)
@@ -73,7 +73,8 @@ handleInput event world
 
 -- | A function to choose the number of steps a piece will move in this turn
 chooseSteps :: Int -> World -> World
-chooseSteps x (World dc t tr av r b st f _) = if x <= 6 then World dc t tr av r b st f 0 else World dc t tr av r b Moving f x
+chooseSteps x (World dc t tr av r b st f _) = 
+    if x > 6 && MyLib.exists x av then World dc t tr av r b st f 0 else World dc t tr av r b Moving f x
 
 -- | A function to perform a move 
 tryMovePiece :: (Int, Int) -> World -> World
@@ -117,7 +118,7 @@ drawPiece color = Color color $ ThickCircle 5 10
 
 -- | Render the State of the Game.
 drawBoard :: World -> Picture
-drawBoard world = translate (-330) 220 (dice <> table <> downwardTriangles <> shiftedUpwardTriangles)
+drawBoard world = translate (-330) 220 (curState <> dice <> table <> downwardTriangles <> shiftedUpwardTriangles)
     where
         len = length (triangles world)
         height = 500
@@ -134,8 +135,8 @@ drawBoard world = translate (-330) 220 (dice <> table <> downwardTriangles <> sh
         half2Upwards = drawGameTriangles (MyLib.takeRange (quarter * 3) len (triangles world)) Upward
 
         shiftedUpwardTriangles = translate (50*(fromIntegral quarter * 2 - 1) + break) (-height) upwardTriangles
-        currentDice = dices world
-        dice = if fst currentDice /= (-1) then Text (show currentDice) else blank
+        dice = if fst (dices world) /= (-1) then Text (show $ dices world) else blank
+        curState = Text (show (state world))
 
 
 -- Draw game triangles
