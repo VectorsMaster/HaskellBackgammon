@@ -68,7 +68,7 @@ initialTriangles = zipWith (\(a, b, c) y -> (a, b, c, y)) ret ['a'..'x']
         ret = [(1, 15, 0)] ++ replicate 22 (0, 0, 0) ++ [(0, 15, 0)]
 
 initialWorld :: World
-initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray False ChooseSteps True (-1)
+initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray False ChooseSteps False (-1)
 
 initialState :: BackGammonGame
 initialState = BackGammonGame initialWorld ThrowDice
