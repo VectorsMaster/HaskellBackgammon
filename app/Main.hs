@@ -65,7 +65,7 @@ backGammon = play
 initialTriangles :: [(Int, Int, Int, Char)]
 initialTriangles = zipWith (\(a, b, c) y -> (a, b, c, y)) ret ['a'..'x']
     where
-        ret = [(1, 15, 0)] ++ replicate 22 (0, 0, 0) ++ [(0, 15, 0)]
+        ret = [(1, 2, 0)] ++ replicate 22 (0, 0, 0) ++ [(0, 2, 0)]
 
 initialWorld :: World
 initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray False ChooseSteps False (-1)
@@ -222,7 +222,7 @@ chooseSteps x (World dc t tr av r b _ f _) =
 throwDices :: World -> World
 throwDices (World _ t tr _ (r1:(r2:rs)) _ _ _ _) = updateBearingOff nextState
     where
-        newWorld = World (r1, r2) t tr [] rs False ChooseSteps False (-1)
+        newWorld = updateBearingOff $ World (r1, r2) t tr [] rs False ChooseSteps False (-1)
         moves = if r1 == r2 then [r1, r1, r1, r1] else [r1, r2]
         newAv = filter (existValidTriangle newWorld) moves
         nextWorld = World (r1, r2) t tr newAv rs False ChooseSteps False (-1)
