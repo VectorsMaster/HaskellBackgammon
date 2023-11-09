@@ -65,7 +65,7 @@ backGammon = play
 initialTriangles :: [(Int, Int, Int, Char)]
 initialTriangles = zipWith (\(a, b, c) y -> (a, b, c, y)) ret ['a'..'x']
     where
-        ret = [(1, 2, 0)] ++ replicate 22 (0, 0, 0) ++ [(0, 2, 0)]
+        ret = [(1, 15, 0)] ++ replicate 22 (0, 0, 0) ++ [(0, 15, 0)]
 
 initialWorld :: World
 initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray False ChooseSteps False (-1)
@@ -77,7 +77,7 @@ initialState = BackGammonGame initialWorld ThrowDice
 drawBoard :: BackGammonGame -> Picture
 drawBoard myGame
     | isFinished = translate (-330) 0 $ Text (player ++ " Won!")
-    | otherwise = translate (-330) 220 
+    | otherwise = translate (-330) 220
         (dice <> table <> downwardTriangles <> shiftedUpwardTriangles <> allTextPic)
     where
         world = curWorld myGame
@@ -109,21 +109,21 @@ drawBoard myGame
             Text "Please select on of these steps values by pressing the numbers on your keyboard!"
         renderAv e = scale 0.2 0.2 $ Text $ show e
         (myPic, _) = foldl (\(pic, i) e -> (pic <> translate (i*50) 0 (renderAv e), i + 1)) (blank, 0) $ availableMoves world
-        chooseStepsPic = if state world == ChooseSteps && gameState myGame /= ThrowDice then 
+        chooseStepsPic = if state world == ChooseSteps && gameState myGame /= ThrowDice then
             translate (-200) 200 chooseStepsText <> translate 0 160 myPic
                 else blank
 
         throwDiceText = scale 0.2 0.2 $
             Text "Press enter to throw the dice!"
         throwDicePic = translate 0 150 $ if gameState myGame == ThrowDice then throwDiceText else blank
-        
+
         playerTurnText = scale 0.4 0.4 $ Text (player ++ " plays")
         playerTurnPic  = translate 0 (-600) playerTurnText
 
         chooseMoveText = scale 0.2 0.2 $
             Text "Select a triangle by pressing its character on your keyboard!"
-        chooseMovePic = if state world == Moving && gameState myGame /= ThrowDice then 
-            translate (-120) 200 chooseMoveText 
+        chooseMovePic = if state world == Moving && gameState myGame /= ThrowDice then
+            translate (-120) 200 chooseMoveText
                 else blank
 
         allTextPic = chooseMovePic <> throwDicePic <> playerTurnPic <> chooseStepsPic
@@ -188,8 +188,8 @@ convEvent 1 (EventKey (Char c) Down _ _)
     | c >= 'a' && c <= 'x'          = MyLib.charToInt c
     | otherwise                     = 24
 convEvent 1 _ = 24
-convEvent 2 (EventKey (Char c) Down _ _) 
-    | c >= '1' && c <= '6'          = MyLib.charToInt c 
+convEvent 2 (EventKey (Char c) Down _ _)
+    | c >= '1' && c <= '6'          = MyLib.charToInt c
     | otherwise                     = 0
 convEvent _ _ = 0
 
@@ -204,30 +204,33 @@ handleInput event game
     | myEvent > 23                                    = game
     | otherwise                                       = BackGammonGame newWorld newState
         where
-            stepsEvent = convEvent 2 event 
+            stepsEvent = convEvent 2 event
             myEvent = convEvent 1 event
             world = curWorld game
             curState = gameState game
 
             newWorld = tryMovePiece (myEvent, choosedSteps world) world
-            ok = turn world /= turn newWorld  
+            ok = turn world /= turn newWorld
             newState = if ok then ThrowDice else Play
 
 -- | A function to choose the number of steps a piece will move in this turn
 chooseSteps :: Int -> World -> World
 chooseSteps x (World dc t tr av r b _ f _) =
-    if not (MyLib.exists x av) then World dc t tr av r b ChooseSteps f 0 else World dc t tr av r b Moving f x
-    
+    if not (MyLib.exists x av) && ok then World dc t tr av r b ChooseSteps f 0 else World dc t tr av r b Moving f x
+    where
+        ok = existValidTriangle (World dc t tr av r b ChooseSteps f 0) x
+
 -- | generate to random numbers from 1 to 6 and assign them the dices member in World struct
 throwDices :: World -> World
 throwDices (World _ t tr _ (r1:(r2:rs)) _ _ _ _) = updateBearingOff nextState
     where
-        newWorld = updateBearingOff $ World (r1, r2) t tr [] rs False ChooseSteps False (-1)
         moves = if r1 == r2 then [r1, r1, r1, r1] else [r1, r2]
-        newAv = filter (existValidTriangle newWorld) moves
-        nextWorld = World (r1, r2) t tr newAv rs False ChooseSteps False (-1)
-        nextState = if null newAv then throwDices newWorld else nextWorld
+        newWorld = updateBearingOff $ World (r1, r2) t tr moves rs False ChooseSteps False (-1)
+        nextState = if existsValidMoves newWorld then newWorld
+            else throwDices $ flipTurn newWorld
 
+existsValidMoves :: World -> Bool
+existsValidMoves world = any (existValidTriangle world) (availableMoves world)
 
 -- | A function to check if there exist a valid triangle where you pick a piece and move it a given number of steps
 existValidTriangle :: World -> Int -> Bool
@@ -243,13 +246,14 @@ tryMovePiece (id, steps) world
     | otherwise = ret
         where
             (ok, newState) = isValidMove (id, steps) world
-            (World dc t tr av r b st _ _) = newState
+            (World dc t tr av r b st _ _) = updateBearingOff newState
             newAv = MyLib.removeOneOccurence steps av
+            newWorld = World dc t tr newAv r b ChooseSteps False (-1)
             ret
               | gameFinished newState = World dc t tr av r b st True (-1)
-              | null newAv = flipTurn newState
-              | otherwise = updateBearingOff (World dc t tr newAv r b ChooseSteps False (-1))
-              
+              | existsValidMoves newWorld = newWorld
+              | otherwise = flipTurn newWorld
+
 colorExist :: GameTriangle -> Int -> Bool
 colorExist (x, y, _, c) clr = x == clr && y > 0
 
@@ -320,7 +324,7 @@ updateBearingOff (World dc t tr av r b st f ch) =
 
 -- | flip the turn
 flipTurn :: World -> World
-flipTurn (World _ t tr _ r _ _ _ _) = throwDices newWorld
+flipTurn (World _ t tr _ r _ _ _ _) = newWorld
     where
         revTurn = inv t
         revTrgs = reverse tr
