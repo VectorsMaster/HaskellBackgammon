@@ -49,6 +49,14 @@ data BackGammonGame = BackGammonGame {
     gameState :: GameState
 } deriving (Eq, Show)
 
+data Mode = Multi | Solo
+    deriving (Eq, Show)
+
+data MultiPlayerGame = MultiPlayerGame {
+    curGame :: BackGammonGame ,
+    curMode :: Maybe Mode
+} deriving (Eq, Show)
+
 main :: IO ()
 main = backGammon
 
@@ -57,9 +65,9 @@ backGammon = play
     (InWindow "Backgammon" (1200, 1000) (100, 100))
     white
     100
-    initialState
-    drawBoard
-    handleInput
+    initialInterface
+    drawGame
+    handleGame
     (\_ world -> world)
 
 initialTriangles :: [(Int, Int, Int, Char)]
@@ -72,6 +80,31 @@ initialWorld = World (-1, -1) 0 initialTriangles [] MyLib.myArray False ChooseSt
 
 initialState :: BackGammonGame
 initialState = BackGammonGame initialWorld ThrowDice
+
+initialInterface :: MultiPlayerGame
+initialInterface = MultiPlayerGame initialState Nothing
+
+points :: [(Float, Float)]
+points  = [(-400,175) ,(-400,350), (350, 350), (350, 175), (-400,175)]
+
+welcomingInterface :: Picture
+welcomingInterface = line points <> translate (-370) 225 (Text "MultiePlayer")
+    <>  translate (-150) (-90) (Text "Solo") <> translate 0 (-300) (line points)
+
+drawGame :: MultiPlayerGame -> Picture
+drawGame (MultiPlayerGame myGame Nothing) = welcomingInterface
+drawGame (MultiPlayerGame myGame (Just Solo)) = drawBoard myGame
+drawGame (MultiPlayerGame myGame (Just Multi)) = drawBoard myGame
+
+insideRectangle :: (Float, Float) -> Bool
+insideRectangle (x, y) = x >= (-400) && x <= 350 && y <= 350 && y >= 175
+
+handleGame :: Event -> MultiPlayerGame -> MultiPlayerGame
+handleGame (EventKey (MouseButton LeftButton) Down _ (x, y)) (MultiPlayerGame g Nothing)
+    | insideRectangle (x, y)        = MultiPlayerGame g (Just Multi)
+    | insideRectangle (x, y + 300)  = MultiPlayerGame g (Just Solo)
+    | otherwise = MultiPlayerGame g Nothing
+handleGame event game = MultiPlayerGame (handleInput event (curGame game)) (curMode game)
 
 -- | Render the State of the Game.
 drawBoard :: BackGammonGame -> Picture
