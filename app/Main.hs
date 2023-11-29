@@ -1,6 +1,7 @@
 module Main where
 
 import MyLib
+    ( charToInt, exists, inv, myArray, removeOneOccurence, takeRange )
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
 import qualified Data.Char as MyLib
@@ -104,7 +105,9 @@ handleGame (EventKey (MouseButton LeftButton) Down _ (x, y)) (MultiPlayerGame g 
     | insideRectangle (x, y)        = MultiPlayerGame g (Just Multi)
     | insideRectangle (x, y + 300)  = MultiPlayerGame g (Just Solo)
     | otherwise = MultiPlayerGame g Nothing
-handleGame event game = MultiPlayerGame (handleInput event (curGame game)) (curMode game)
+handleGame event (MultiPlayerGame g Nothing) = MultiPlayerGame g Nothing
+handleGame event (MultiPlayerGame g (Just Multi)) = MultiPlayerGame (handleInput True event g) (Just Multi)
+handleGame event (MultiPlayerGame g (Just Solo))  = MultiPlayerGame (handleInput False event g) (Just Solo)
 
 -- | Render the State of the Game.
 drawBoard :: BackGammonGame -> Picture
@@ -228,10 +231,10 @@ convEvent _ _ = 0
 
 
 -- | Change the state of the game according to user's input
-handleInput :: Event -> BackGammonGame -> BackGammonGame
-handleInput event game
+handleInput :: Bool -> Event -> BackGammonGame -> BackGammonGame
+handleInput isMulti event game
     | finished world                                  = game
-    | tturn == 1                                      = bot game
+    | tturn == 1 && isMulti                           = bot game
     | curState == ThrowDice && convEvent 0 event == 1 = BackGammonGame (throwDices world) Play
     | curState == ThrowDice                           = game
     | state world == ChooseSteps                      = BackGammonGame (chooseSteps stepsEvent world) Play
