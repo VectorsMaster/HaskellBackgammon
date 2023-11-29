@@ -32,7 +32,7 @@ library
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    
-        base ^>=4.17.2.0,
+        base ^>=4.11.0.0,
         random,
         time,
     hs-source-dirs:   src
@@ -47,7 +47,7 @@ executable HaskellBackgammon
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
-        base ^>=4.17.2.0,
+        base ^>=4.11.0.0,
         gloss,
         HaskellBackgammon
 
