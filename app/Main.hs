@@ -231,6 +231,7 @@ convEvent _ _ = 0
 handleInput :: Event -> BackGammonGame -> BackGammonGame
 handleInput event game
     | finished world                                  = game
+    | tturn == 1                                      = bot game
     | curState == ThrowDice && convEvent 0 event == 1 = BackGammonGame (throwDices world) Play
     | curState == ThrowDice                           = game
     | state world == ChooseSteps                      = BackGammonGame (chooseSteps stepsEvent world) Play
@@ -241,7 +242,7 @@ handleInput event game
             myEvent = convEvent 1 event
             world = curWorld game
             curState = gameState game
-
+            tturn = turn (curWorld game)
             newWorld = tryMovePiece (myEvent, choosedSteps world) world
             ok = turn world /= turn newWorld
             newState = if ok then ThrowDice else Play
@@ -375,3 +376,20 @@ gameFinished world = countInTriangles (triangles world)
             | z == 1 = False
             | otherwise = countInTriangles xs
 
+allMoves :: [Int] -> [(Int,Int)]
+allMoves [] = []
+allMoves (x:xs) = (go x [0..23]) ++ allMoves xs  
+    where 
+        go :: Int -> [Int] -> [(Int, Int)]
+        go x [] = []
+        go x (y:ys) = (y, x) : (y, x) : (y, x) : (y, x) : go x ys
+
+bot :: BackGammonGame -> BackGammonGame
+bot game = newGame
+    where
+        newState = (gameState game)
+        world = throwDices (curWorld game)
+        moves = allMoves (availableMoves world)
+        
+        newWorld =  (foldl (\x y -> tryMovePiece y x) world moves)
+        newGame = BackGammonGame newWorld newState
