@@ -381,8 +381,8 @@ gameFinished world = countInTriangles (triangles world)
 
 allMoves :: [Int] -> [(Int,Int)]
 allMoves [] = []
-allMoves (x:xs) = (go x [0..23]) ++ allMoves xs  
-    where 
+allMoves (x:xs) = go x [0..23] ++ allMoves xs
+    where
         go :: Int -> [Int] -> [(Int, Int)]
         go x [] = []
         go x (y:ys) = (y, x) : (y, x) : (y, x) : (y, x) : go x ys
@@ -390,9 +390,9 @@ allMoves (x:xs) = (go x [0..23]) ++ allMoves xs
 bot :: BackGammonGame -> BackGammonGame
 bot game = newGame
     where
-        newState = (gameState game)
+        newState = gameState game
         world = throwDices (curWorld game)
         moves = allMoves (availableMoves world)
-        
-        newWorld =  (foldl (\x y -> tryMovePiece y x) world moves)
+
+        newWorld =  foldl (\x y -> tryMovePiece y x) world moves
         newGame = BackGammonGame newWorld newState
