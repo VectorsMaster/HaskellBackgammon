@@ -387,6 +387,35 @@ allMoves (x:xs) = go x [0..23] ++ allMoves xs
         go x [] = []
         go x (y:ys) = (y, x) : (y, x) : (y, x) : (y, x) : go x ys
 
+-- depth :: [(Int, Int)] -> World -> Int
+-- depth [] _ = 0
+-- depth (x:xs) world = max (depth xs world) newDepth
+--     where  
+--         (ok, _) = isValidMove x world
+--         newDepth 
+--             | ok = (depth allMovesList (tryMovePiece x world)) + 1
+--             | otherwise = 0
+
+newBotWorld :: [(Int, Int)] ->  World -> (Int, World)
+newBotWorld [] world = (1, world)
+newBotWorld (x:xs) world 
+    | not ok = newBotWorld1
+    | depth1 > depth2 = newBotWorld1
+    | otherwise = newBotWorld2
+    where
+        (ok, _) = (isValidMove x world)
+        newBotWorld1 = newBotWorld xs world
+        _newBotWorld2 
+            | ok = newBotWorld (allMoves moves) newWorld
+            | otherwise = (0, world)
+                where
+                    newWorld = (tryMovePiece x world)
+                    moves = availableMoves newWorld
+        (depth1, _) = newBotWorld1
+        (_depth2, _world2) = _newBotWorld2
+        newBotWorld2 = (_depth2 + 1, _world2)
+        (depth2, _) = newBotWorld2
+
 bot :: BackGammonGame -> BackGammonGame
 bot game = newGame
     where
@@ -394,5 +423,7 @@ bot game = newGame
         world = throwDices (curWorld game)
         moves = allMoves (availableMoves world)
 
-        newWorld =  foldl (\x y -> tryMovePiece y x) world moves
+        (_, _newWorld) = newBotWorld moves world
+        newWorld = _newWorld
         newGame = BackGammonGame newWorld newState
+
